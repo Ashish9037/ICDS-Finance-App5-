@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ICDS - Finance Management System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        :root {
+            --primary-blue: #0056b3;
+            --light-blue: #eef5fb;
+            --white: #ffffff;
+            --border-color: #cbd5e1;
+            --text-dark: #1e293b;
+            --bg-gray: #f0f4f8;
+        }
+        
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1; border-radius: 10px;
+            border: 3px solid var(--bg-gray); background-clip: padding-box;
+        }
+        ::-webkit-scrollbar-thumb:hover { background-color: var(--primary-blue); border: 2px solid var(--bg-gray); }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-gray); color: var(--text-dark);
+            margin: 0; padding: 0; box-sizing: border-box;
+            width: 100vw; min-height: 100vh; overflow-x: hidden;
+        }
+        body.locked { overflow: hidden; }
+
+        /* વેલકમ સ્ક્રીન */
+        #welcomeScreen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(135deg, var(--primary-blue), #003d82);
+            color: var(--white); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; text-align: center;
+            z-index: 9999; transition: 0.3s; padding: 20px; box-sizing: border-box;
+        }
+        #welcomeScreen h1 { font-size: 40px; margin-bottom: 10px; letter-spacing: 1px;}
+        #welcomeScreen h2 { font-size: 24px; font-weight: 400; color: #bae6fd; margin-bottom: 40px;}
+        
+        .enter-btn {
+            background: var(--white); color: var(--primary-blue);
+            padding: 15px 40px; font-size: 20px; font-weight: bold;
+            border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            animation: pulse 2s infinite; cursor: pointer; margin-bottom: 30px; text-align: center;
+        }
+        .enter-btn:hover { background: #f8fafc; }
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+            50% { transform: scale(1.05); box-shadow: 0 4px 25px rgba(255,255,255,0.4); }
+            100% { transform: scale(1); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        }
+
+        .window-mode-btn {
+            background: transparent; color: #bae6fd; border: 1px solid #bae6fd;
+            padding: 8px 20px; border-radius: 20px; cursor: pointer; margin-bottom: 30px;
+            font-size: 14px; transition: 0.3s;
+        }
+        .window-mode-btn:hover { background: #bae6fd; color: var(--primary-blue); }
+
+        #passwordBox { display: none; margin-bottom: 30px; animation: popIn 0.3s; width: 100%; max-width: 400px; text-align: center;}
+        #sysPassword {
+            padding: 15px; font-size: 18px; border-radius: 8px; border: 2px solid white; 
+            outline: none; text-align: center; width: calc(100% - 130px); margin-right: 10px;
+            background: rgba(255,255,255,0.2); color: white; letter-spacing: 3px; max-width: 200px;
+        }
+        #sysPassword::placeholder { color: rgba(255,255,255,0.7); letter-spacing: normal; }
+        #sysPassword:focus { background: rgba(255,255,255,0.3); border-color: #fde047; }
+        .unlock-btn {
+            padding: 15px 20px; font-size: 16px; background: #10b981; color: white; 
+            border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s;
+        }
+        .unlock-btn:hover { background: #059669; }
+
+        .welcome-warning {
+            max-width: 600px; padding: 15px; border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255,255,255,0.3);
+            font-size: 16px; line-height: 1.5; width: 100%; box-sizing: border-box;
+        }
+        .welcome-warning span.highlight { color: #fde047; font-weight: bold; font-size: 17px; display: block; margin-top: 5px;}
+
+        /* ટોસ્ટ મેસેજ */
+        .toast-msg {
+            visibility: hidden; min-width: 250px; color: #fff; text-align: center;
+            border-radius: 8px; padding: 15px 20px; position: fixed; z-index: 10005;
+            left: 50%; bottom: 30px; font-size: 16px; font-weight: bold;
+            transform: translateX(-50%); box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .toast-msg.show { visibility: visible; animation: fadein 0.3s, fadeout 0.3s 2.7s; }
+        @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
+        @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center;
+            z-index: 10000; backdrop-filter: blur(4px); padding: 20px; box-sizing: border-box;
+        }
+        .modal-box {
+            background: white; width: 100%; max-width: 550px; border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: hidden; animation: popIn 0.3s;
+        }
+        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        
+        .modal-title { background: #ef4444; color: white; padding: 15px 20px; font-size: 20px; font-weight: bold; }
+        .modal-title.warning { background: #f59e0b; }
+        .modal-body { padding: 20px; font-size: 16px; line-height: 1.6; color: #334155; }
+        .modal-body .backup-box {
+            background: #f1f5f9; padding: 10px 15px; border-radius: 6px;
+            border: 1px solid #cbd5e1; margin-top: 15px; font-size: 15px; word-break: break-all;
+        }
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; padding: 15px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; flex-wrap: wrap;}
+        .modal-buttons .btn { font-size: 15px; padding: 10px 15px; flex: 1; text-align: center; }
+
+        /* ડેશબોર્ડ */
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 25px; margin-top: 10px; }
+        .dash-card { background: var(--white); border-radius: 10px; padding: 20px 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.06); border-left: 6px solid #ccc; display: flex; flex-direction: column; justify-content: center; transition: transform 0.2s, box-shadow 0.2s; }
+        .dash-card:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
+        .dash-card.card-blue { border-left-color: #3b82f6; } .dash-card.card-red { border-left-color: #ef4444; }
+        .dash-card.card-green { border-left-color: #10b981; } .dash-card.card-orange { border-left-color: #f59e0b; }
+        
+        .dash-title { font-size: 15px; color: #64748b; font-weight: bold; margin-bottom: 8px; }
+        .dash-value { font-size: 28px; font-weight: 800; color: var(--text-dark); letter-spacing: 0.5px;}
+        .dash-info { font-size: 13px; color: #94a3b8; margin-top: 5px; }
+
+        #mainApp { display: none; }
+        
+        .header { background-color: var(--primary-blue); color: var(--white); padding: 15px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .main-heading { font-size: 24px; font-weight: bold; letter-spacing: 1px; margin-bottom: 5px; }
+        .sub-heading { font-size: 16px; font-weight: 500; color: #bae6fd; }
+
+        .container { width: 100%; min-height: calc(100vh - 80px); padding: 15px; box-sizing: border-box; background: var(--bg-gray); }
+        h3 { color: var(--primary-blue); border-bottom: 2px solid var(--border-color); padding-bottom: 8px; margin-top: 0; font-size: 18px;}
+        
+        .tabs { display: flex; flex-wrap: wrap; margin-bottom: 15px; gap: 8px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px;}
+        .tab-btn { background: var(--white); border: 1px solid var(--primary-blue); color: var(--primary-blue); padding: 8px 15px; cursor: pointer; border-radius: 4px; font-weight: 600; transition: 0.2s; font-size: 14px; flex: 1 1 auto; text-align: center;}
+        .tab-btn.active, .tab-btn:hover { background: var(--primary-blue); color: var(--white); }
+        .btn-exit { background: #ef4444 !important; color: white !important; border-color: #dc2626 !important; }
+        .btn-exit:hover { background: #dc2626 !important; }
+
+        .section { display: none; background: var(--white); padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .section.active { display: block; animation: fadeIn 0.3s; }
+        
+        .form-group { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 15px; background: var(--light-blue); padding: 15px; border-radius: 5px;}
+        .input-field { flex: 1 1 200px; display: flex; flex-direction: column; }
+        label { font-weight: 600; margin-bottom: 5px; color: var(--primary-blue); font-size: 13px;}
+        input, select { padding: 9px; border: 1px solid var(--border-color); border-radius: 4px; outline: none; font-size: 14px; width: 100%; box-sizing: border-box;}
+        input:focus, select:focus { border-color: var(--primary-blue); box-shadow: 0 0 0 2px #bae6fd;}
+        input[readonly] { background-color: #e2e8f0; cursor: not-allowed; }
+        
+        .btn { background: var(--primary-blue); color: var(--white); border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; font-weight: bold; display: inline-block; font-size: 14px;}
+        .btn:hover { background: #004494; }
+        .btn-success { background: #10b981; } .btn-success:hover { background: #059669; }
+        .btn-danger { background: #ef4444; } .btn-danger:hover { background: #dc2626; }
+        .btn-edit { background: #f59e0b; color: white; } .btn-edit:hover { background: #d97706; }
+        .btn-small { padding: 6px 10px; font-size: 12px; margin: 2px;}
+        
+        .table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 10px; border-radius: 4px; border: 1px solid var(--border-color);}
+        
+        table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 600px; }
+        .table-wide { min-width: 900px; }
+        th, td { border: 1px solid var(--border-color); padding: 10px; text-align: left; }
+        th { background-color: var(--primary-blue); color: var(--white); font-weight: 600; white-space: nowrap;}
+        tr:nth-child(even) { background-color: var(--light-blue); }
+        tr:hover { background-color: #e0f2fe; }
+        
+        .filter-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; background: #f8fafc; padding: 15px; border-radius: 4px; margin-bottom: 15px; border: 1px solid var(--border-color);}
+        hr { margin: 25px 0; border: 0; border-top: 2px dashed var(--border-color); }
+
+        /* મોબાઈલ માટે */
+        @media screen and (max-width: 768px) {
+            #welcomeScreen h1 { font-size: 28px; }
+            #welcomeScreen h2 { font-size: 18px; }
+            .enter-btn { padding: 12px 25px; font-size: 16px; width: 100%; max-width: 300px;}
+            .header { padding: 12px; } .main-heading { font-size: 20px; } .sub-heading { font-size: 14px; }
+            .container { padding: 10px; } .section { padding: 15px; }
+            .tabs { gap: 5px; } .tab-btn { flex: 1 1 calc(33.33% - 10px); font-size: 13px; padding: 8px 5px; }
+            .btn-exit { flex: 1 1 100%; }
+            .input-field { flex: 1 1 100%; } .filter-bar .input-field { flex: 1 1 100%; } .filter-bar .btn { width: 100%; }
+            #sysPassword { width: 60%; margin-right: 5%; } .unlock-btn { width: 35%; padding: 15px 10px; }
+            .dashboard-grid { grid-template-columns: 1fr; }
+            .form-group .btn { width: 100%; margin-top: 5px; } #saveBtn { width: 100%; }
+            .backup-box { display: flex; flex-direction: column; gap: 10px;} .backup-box .btn, .backup-box input { width: 100%; }
+        }
+    </style>
+</head>
+<body class="locked">
+
+<div id="toastMessage" class="toast-msg">ડેટા સેવ થઈ ગયો!</div>
+
+<div id="welcomeScreen">
+    <h1>Integrated Child Development Services (ICDS)</h1>
+    <h2>ફાઇનાન્સ મેનેજમેન્ટ સિસ્ટમ</h2>
+    <div class="enter-btn" id="enterBtn" onclick="showPasswordPrompt('fullscreen')">સિસ્ટમમાં એન્ટર થવા માટે અહીં ક્લિક કરો</div>
+    <button id="windowModeBtn" class="window-mode-btn" onclick="showPasswordPrompt('window')">💻 સોફ્ટવેર ઇન્સ્ટોલ કરવા માટે (Window Mode)</button>
+    
+    <div id="passwordBox">
+        <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
+            <input type="password" id="sysPassword" placeholder="પાસવર્ડ" onkeyup="if(event.key === 'Enter') checkPassword()">
+            <button class="unlock-btn" onclick="checkPassword()">અનલૉક 🔓</button>
+        </div>
+    </div>
+    <div class="welcome-warning">
+        <b>નોંધ:</b> જો તમે નવા કમ્પ્યુટર કે બ્રાઉઝરમાં સિસ્ટમ વાપરી રહ્યા છો, તો તમારો જૂનો ડેટા જોવા માટે <b>'બેકઅપ ફાઈલ' અપલોડ કરવી ફરજિયાત છે.</b>
+        <span class="highlight" id="welcomeLastBackupName"></span>
+    </div>
+</div>
+
+<div id="customConfirmModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-title warning" id="confirmTitle">⚠️ ખાતરી કરો!</div>
+        <div class="modal-body" id="confirmMessage">શું તમે ખરેખર ડિલીટ કરવા માંગો છો?</div>
+        <div class="modal-buttons">
+            <button class="btn btn-edit" onclick="closeConfirm()">રદ કરો (Cancel)</button>
+            <button class="btn btn-danger" id="confirmYesBtn">હા, ડિલીટ કરો</button>
+        </div>
+    </div>
+</div>
+
+<div id="exitModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-title">⚠️ સિસ્ટમમાંથી બહાર નીકળો</div>
+        <div class="modal-body">
+            શું તમે ખરેખર સિસ્ટમ બંધ કરવા માંગો છો?<br><br>
+            
+            <div id="unsavedWarning" style="display:none; color: #b45309; background: #fef3c7; padding: 12px; border-radius: 6px; margin-bottom: 15px; font-weight: bold; border: 1px solid #fcd34d;">
+                તમે નવી એન્ટ્રી/સુધારો કર્યો છે. બહાર નીકળતા પહેલા સિસ્ટમ આપોઆપ ડેટા સેવ (Auto Backup) કરી લેશે.
+            </div>
+
+            <div class="backup-box">
+                છેલ્લી બેકઅપ ફાઈલનું નામ:<br>
+                <b id="exitLastBackupName" style="color: var(--primary-blue); font-size: 16px; margin-top: 5px; display: block;">હજુ સુધી કોઈ બેકઅપ લીધેલ નથી!</b>
+            </div>
+        </div>
+        <div class="modal-buttons">
+            <button class="btn btn-danger" onclick="closeExitModal()">રદ કરો (Cancel)</button>
+            <button class="btn btn-success" id="exitConfirmBtn" onclick="confirmExit()">બહાર નીકળો (Exit)</button>
+        </div>
+    </div>
+</div>
+
+<div id="mainApp">
+    <div class="header">
+        <div class="main-heading">Integrated Child Development Services (ICDS)</div>
+        <div class="sub-heading">ફાઇનાન્સ મેનેજમેન્ટ સિસ્ટમ</div>
+    </div>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showSection('dashboard')" id="tabDashboard">🏠 ડેશબોર્ડ</button>
+            <button class="tab-btn" onclick="showSection('entry')" id="tabEntry">➕ નવી એન્ટ્રી</button>
+            <button class="tab-btn" onclick="showSection('reports')">📄 ડેટા રિપોર્ટ</button>
+            <button class="tab-btn" onclick="showSection('summary')">📈 સમરી</button>
+            <button class="tab-btn" onclick="showSection('settings')">⚙️ હેડ સેટિંગ્સ</button>
+            <button class="tab-btn" onclick="showSection('password')" id="tabPassword">🔑 પાસવર્ડ</button>
+            <button class="tab-btn" onclick="showSection('backup')" id="tabBackup">💾 બેકઅપ</button>
+            <button class="tab-btn btn-exit" onclick="openExitModal()">✖ Exit</button>
+        </div>
+
+        <div id="dashboard" class="section active">
+            <h3>📊 ફંડ ઓવરવ્યૂ (Fund Overview)</h3>
+            <div class="filter-bar" style="margin-bottom: 20px;">
+                <div class="input-field">
+                    <label style="font-size: 14px;">હેડ મુજબ (Filter by Head)</label>
+                    <select id="dashFilterHead" onchange="populateDashMajorHeads()" style="padding: 10px; font-weight: bold; color: var(--primary-blue);">
+                        <option value="All">બધા હેડ (All Heads)</option>
+                    </select>
+                </div>
+                <div class="input-field">
+                    <label style="font-size: 14px;">મુખ્ય હેડ મુજબ (Major Head)</label>
+                    <select id="dashFilterMajorHead" onchange="calculateDashboardStats()" style="padding: 10px; font-weight: bold; color: var(--primary-blue);">
+                        <option value="All">બધા મેજર હેડ (All)</option>
+                    </select>
+                </div>
+                <div class="input-field">
+                    <label style="font-size: 14px;">નાણાકીય વર્ષ (Financial Year)</label>
+                    <select id="dashFilterFY" onchange="calculateDashboardStats()" style="padding: 10px; font-weight: bold; color: var(--primary-blue);">
+                        <option value="All">બધા વર્ષ (All Years)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="dash-card card-blue">
+                    <div class="dash-title">કુલ મળેલ ગ્રાન્ટ (Op. Bal + New)</div>
+                    <div class="dash-value" id="dashTotalGrant">0</div>
+                    <div class="dash-info">આગલી બચત + નવી મળેલ રકમ</div>
+                </div>
+                <div class="dash-card card-red">
+                    <div class="dash-title">કુલ થયેલ ખર્ચ</div>
+                    <div class="dash-value" id="dashTotalExp">0</div>
+                    <div class="dash-info">વર્તમાન વર્ષનો કુલ ખર્ચ</div>
+                </div>
+                <div class="dash-card card-green">
+                    <div class="dash-title">કુલ બચત ગ્રાન્ટ (Balance)</div>
+                    <div class="dash-value" id="dashBalance">0</div>
+                    <div class="dash-info">ઉપલબ્ધ બેલેન્સ રકમ</div>
+                </div>
+                <div class="dash-card card-orange">
+                    <div class="dash-title">ખર્ચની ટકાવારી</div>
+                    <div class="dash-value" id="dashPercent">0%</div>
+                    <div class="dash-info">કુલ ભંડોળમાંથી વપરાયેલ %</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="settings" class="section">
+            <h3>હેડ સેટિંગ્સ (Add / Edit Head)</h3>
+            <div class="form-group" style="max-width: 600px;">
+                <div class="input-field"><label>હેડનું નામ (Head Name)</label><input type="text" id="newHeadName" placeholder="ઉદા. Salary"></div>
+                <div class="input-field"><label>મુખ્ય હેડ (Major Head)</label><input type="text" id="newMajorHead" placeholder="ઉદા. 2236/2/79210"></div>
+                <div class="input-field" style="justify-content: flex-end; flex-direction: row; gap: 10px;">
+                    <button class="btn btn-success" id="saveHeadBtn" onclick="saveHead()">✔ હેડ સેવ કરો</button>
+                    <button class="btn btn-danger" id="cancelHeadEditBtn" onclick="cancelHeadEdit()" style="display:none;">✖ રદ કરો</button>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table style="max-width: 600px;">
+                    <thead><tr><th>હેડનું નામ</th><th>મુખ્ય હેડ (Major Head)</th><th>Action</th></tr></thead>
+                    <tbody id="headsTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="password" class="section">
+            <h3>🔑 સિસ્ટમનો પાસવર્ડ બદલો (Change Password)</h3>
+            <div style="color: #64748b; font-size: 14px; margin-bottom: 15px;">નવા કમ્પ્યુટરમાં ડિફોલ્ટ પાસવર્ડ '1975' રહેશે. તમે અહીંથી નવો પાસવર્ડ સેટ કરી શકો છો.</div>
+            <div class="form-group" style="max-width: 800px; background: #fff8f1; border: 1px solid #fed7aa;">
+                <div class="input-field"><label>જૂનો પાસવર્ડ</label><input type="password" id="oldPwd" placeholder="હાલનો પાસવર્ડ નાખો"></div>
+                <div class="input-field"><label>નવો પાસવર્ડ</label><input type="password" id="newPwd" placeholder="નવો પાસવર્ડ બનાવો"></div>
+                <div class="input-field"><label>ફરીથી નવો પાસવર્ડ</label><input type="password" id="confirmPwd" placeholder="પાસવર્ડ કન્ફર્મ કરો"></div>
+                <div class="input-field" style="justify-content: flex-end;">
+                    <button class="btn btn-edit" onclick="changePassword()">🔑 પાસવર્ડ બદલો</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="entry" class="section">
+            <h3 id="formTitle">નવી વિગત ઉમેરો</h3>
+            <div class="form-group">
+                <div class="input-field"><label>તારીખ (Date)</label><input type="date" id="date" onchange="calculateFinancialDetails()"></div>
+                <div class="input-field"><label>માસ (Month)</label><input type="text" id="monthStr" readonly placeholder="તારીખ પસંદ કરો"></div>
+                <div class="input-field"><label>નાણાકીય વર્ષ (Financial Year)</label><input type="text" id="fyStr" readonly placeholder="તારીખ પસંદ કરો"></div>
+                <div class="input-field"><label>વાઉચર નં. (Voucher No)</label><input type="text" id="voucher"></div>
+                <div class="input-field">
+                    <label>હેડ પસંદ કરો (Select Head)</label>
+                    <select id="headSelect" onchange="autoFillMajorHead()">
+                        <option value="">-- હેડ સિલેક્ટ કરો --</option>
+                    </select>
+                </div>
+                <div class="input-field">
+                    <label>મુખ્ય હેડ (Major Head)</label>
+                    <select id="majorHead">
+                        <option value="">-- પહેલા હેડ પસંદ કરો --</option>
+                    </select>
+                </div>
+                <div class="input-field" style="flex: 1 1 100%;"><label>વિગતો (Details)</label><input type="text" id="details" placeholder="અહીં વિગતો લખો..."></div>
+                <div class="input-field"><label>મળેલ ગ્રાન્ટ (Grant)</label><input type="number" id="grant" placeholder="0"></div>
+                <div class="input-field"><label>થયેલ ખર્ચ (Expenditure)</label><input type="number" id="expenditure" placeholder="0"></div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn" id="saveBtn" onclick="saveEntry()">✔ ડેટા સેવ કરો</button>
+                <button class="btn btn-danger" id="cancelEditBtn" onclick="cancelEdit()" style="display:none;">✖ રદ કરો</button>
+            </div>
+        </div>
+
+        <div id="reports" class="section">
+            <h3>ડેટા રિપોર્ટ</h3>
+            <div class="filter-bar">
+                <div class="input-field">
+                    <label>હેડ મુજબ ફિલ્ટર</label>
+                    <select id="filterHead" onchange="renderTable()"><option value="All">All Heads</option></select>
+                </div>
+                <div class="input-field">
+                    <label>નાણાકીય વર્ષ ફિલ્ટર (FY)</label>
+                    <select id="filterFY" onchange="renderTable()"><option value="All">All Years</option></select>
+                </div>
+                <div class="input-field">
+                    <label>મહિનો (Month)</label>
+                    <select id="filterMonth" onchange="renderTable()"><option value="All">All Months</option></select>
+                </div>
+                <button class="btn btn-danger" onclick="exportPDF('reportPrintArea', 'Detailed_Report')">📥 PDF ડાઉનલોડ</button>
+            </div>
+            
+            <div id="reportPrintArea" style="background: white; padding: 10px;">
+                <h3 style="text-align:center; color: #1e293b; display:none;" id="pdfTitleReport">ICDS - ફાઇનાન્સ ડેટા રિપોર્ટ</h3>
+                <div class="table-wrapper">
+                    <table id="dataTable" class="table-wide">
+                        <thead>
+                            <tr>
+                                <th>Date</th><th>Month</th><th>FY</th><th>Voucher No</th><th>Head Name</th><th>Major Head</th><th>Details</th><th>Grant</th><th>Expenditure</th><th>Balance</th><th class="action-col">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="summary" class="section">
+            <h3>હેડ અને મેજર હેડ મુજબ સમરી (Summary Report)</h3>
+            <div class="filter-bar" style="margin-bottom: 15px;">
+                <div class="input-field" style="max-width:300px;">
+                    <label>નાણાકીય વર્ષ (FY) મુજબ સમરી</label>
+                    <select id="summaryFilterFY" onchange="renderSummary()"><option value="All">All Years</option></select>
+                </div>
+                <button class="btn btn-danger" onclick="exportPDF('summaryPrintArea', 'Summary_Report')">📥 સમરી PDF ડાઉનલોડ</button>
+            </div>
+            
+            <div id="summaryPrintArea" style="background: white; padding: 10px;">
+                <h3 style="text-align:center; color: #1e293b; display:none;" id="pdfTitleSummary">ICDS - હેડ મુજબ સમરી રિપોર્ટ</h3>
+                <div class="table-wrapper">
+                    <table id="summaryTable">
+                        <thead>
+                            <tr>
+                                <th>Head Name</th><th>Major Head</th>
+                                <th>Opening Balance<br>(આગલી બચત)</th>
+                                <th>New Grant<br>(નવી ગ્રાન્ટ)</th>
+                                <th>Total Fund<br>(કુલ ભંડોળ)</th>
+                                <th>Expenditure<br>(ખર્ચ)</th>
+                                <th>Balance<br>(બાકી)</th>
+                                <th>% Used</th>
+                            </tr>
+                        </thead>
+                        <tbody id="summaryBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="backup" class="section">
+            <h3>ડેટા સુરક્ષા (Backup & Upload)</h3>
+            <div class="form-group backup-box" style="align-items: center;">
+                <button class="btn btn-success" onclick="downloadBackup(false)">💾 ડેટા ડાઉનલોડ (Backup)</button>
+                <span style="margin: 0 15px; color: #cbd5e1;">|</span>
+                <input type="file" id="uploadFile" accept=".json" style="padding: 5px; background: white; border: 1px solid var(--border-color); border-radius: 4px;">
+                <button class="btn" onclick="uploadBackup()">📂 ડેટા અપલોડ (Restore)</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let dbData = JSON.parse(localStorage.getItem('icds_db_data_v2')) || [];
+    let headsList = JSON.parse(localStorage.getItem('icds_heads_list')) || [];
+    let editingId = null; 
+    let editingHeadIndex = null; 
+    let oldHeadData = null; 
+    let isWindowMode = false;
+    let pendingAction = null; 
+    
+    let currentFileHandle = null;
+    let currentBackupDate = "";
+    let isDataChanged = false; 
+
+    window.onload = function() {
+        updateHeadDropdowns();
+        updateFYDropdown();
+        updateMonthDropdown();
+        updateBackupInfo(); 
+    };
+
+    function showToast(msg, isError = false) {
+        let toast = document.getElementById("toastMessage");
+        toast.innerText = msg;
+        toast.style.backgroundColor = isError ? "#ef4444" : "#10b981";
+        toast.className = "toast-msg show";
+        setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+    }
+
+    function showConfirm(msg, callback) {
+        document.getElementById('confirmMessage').innerText = msg;
+        pendingAction = callback;
+        document.getElementById('customConfirmModal').style.display = 'flex';
+    }
+    
+    function closeConfirm() {
+        document.getElementById('customConfirmModal').style.display = 'none';
+        pendingAction = null;
+    }
+    
+    document.getElementById('confirmYesBtn').onclick = function() {
+        if(pendingAction) pendingAction();
+        closeConfirm();
+    };
+
+    function getSystemPassword() { return localStorage.getItem('icds_sys_password') || "1975"; }
+
+    function showPasswordPrompt(mode) {
+        isWindowMode = (mode === 'window');
+        document.getElementById('enterBtn').style.display = 'none';
+        document.getElementById('windowModeBtn').style.display = 'none';
+        document.getElementById('passwordBox').style.display = 'block';
+        document.getElementById('sysPassword').focus();
+    }
+
+    function checkPassword() {
+        let pwd = document.getElementById('sysPassword').value;
+        if(pwd === getSystemPassword()) {
+            document.getElementById('sysPassword').value = ''; 
+            enterSystem(isWindowMode);
+        } else {
+            showToast("પાસવર્ડ ખોટો છે! સાચો પાસવર્ડ દાખલ કરો.", true);
+            document.getElementById('sysPassword').value = '';
+            document.getElementById('sysPassword').focus();
+        }
+    }
+
+    function changePassword() {
+        let savedPwd = getSystemPassword();
+        let oldPwd = document.getElementById('oldPwd').value;
+        let newPwd = document.getElementById('newPwd').value;
+        let confirmPwd = document.getElementById('confirmPwd').value;
+
+        if(oldPwd !== savedPwd) { showToast("તમારો જૂનો પાસવર્ડ ખોટો છે!", true); return; }
+        if(newPwd === "") { showToast("નવો પાસવર્ડ ખાલી રાખી શકાય નહિ!", true); return; }
+        if(newPwd !== confirmPwd) { showToast("નવો પાસવર્ડ અને કન્ફર્મ પાસવર્ડ મેચ થતા નથી!", true); return; }
+
+        localStorage.setItem('icds_sys_password', newPwd);
+        showToast("તમારો પાસવર્ડ સફળતાપૂર્વક બદલાઈ ગયો છે.");
+        document.getElementById('oldPwd').value = '';
+        document.getElementById('newPwd').value = '';
+        document.getElementById('confirmPwd').value = '';
+    }
+
+    function populateDashMajorHeads() {
+        let selectedHead = document.getElementById('dashFilterHead').value;
+        let dashMajorSelect = document.getElementById('dashFilterMajorHead');
+        dashMajorSelect.innerHTML = '<option value="All">બધા મેજર હેડ (All)</option>';
+
+        if (selectedHead !== 'All') {
+            let availableMHeads = headsList.filter(h => h.name === selectedHead).map(h => h.majorHead);
+            [...new Set(availableMHeads)].forEach(m => {
+                dashMajorSelect.innerHTML += `<option value="${m}">${m}</option>`;
+            });
+        }
+        calculateDashboardStats();
+    }
+
+    function calculateDashboardStats() {
+        let totalGrant = 0;
+        let totalExp = 0;
+        let openingBalance = 0;
+        
+        let selectedHead = document.getElementById('dashFilterHead').value;
+        let selectedMajorHead = document.getElementById('dashFilterMajorHead').value;
+        let selectedFY = document.getElementById('dashFilterFY').value;
+        
+        dbData.forEach(row => {
+            let headMatch = (selectedHead === 'All' || row.headName === selectedHead);
+            let majorHeadMatch = (selectedMajorHead === 'All' || row.majorHead === selectedMajorHead);
+
+            if (headMatch && majorHeadMatch) {
+                if (selectedFY === 'All') {
+                    totalGrant += row.grant || 0;
+                    totalExp += row.expenditure || 0;
+                } else {
+                    if (row.fy < selectedFY) {
+                        openingBalance += (row.grant || 0) - (row.expenditure || 0);
+                    } else if (row.fy === selectedFY) {
+                        totalGrant += row.grant || 0;
+                        totalExp += row.expenditure || 0;
+                    }
+                }
+            }
+        });
+
+        let finalTotalGrant = totalGrant + openingBalance;
+        let balance = finalTotalGrant - totalExp;
+        let percent = finalTotalGrant > 0 ? ((totalExp / finalTotalGrant) * 100).toFixed(2) : 0;
+
+        document.getElementById('dashTotalGrant').innerText = "₹ " + finalTotalGrant.toLocaleString('en-IN');
+        document.getElementById('dashTotalExp').innerText = "₹ " + totalExp.toLocaleString('en-IN');
+        document.getElementById('dashBalance').innerText = "₹ " + balance.toLocaleString('en-IN');
+        document.getElementById('dashPercent').innerText = percent + "%";
+        document.getElementById('dashBalance').style.color = balance < 0 ? '#ef4444' : 'var(--text-dark)';
+    }
+
+    function updateBackupInfo() {
+        let lastObj = localStorage.getItem('icds_last_backup_name');
+        if(lastObj) {
+            document.getElementById('welcomeLastBackupName').innerHTML = "(તમારી છેલ્લી બેકઅપ ફાઈલ: " + lastObj + ")";
+            document.getElementById('exitLastBackupName').innerHTML = lastObj;
+        } else {
+            document.getElementById('welcomeLastBackupName').innerHTML = "(તમે હજુ સુધી આ બ્રાઉઝરમાંથી કોઈ બેકઅપ લીધેલ નથી)";
+            document.getElementById('exitLastBackupName').innerHTML = "હજુ સુધી કોઈ બેકઅપ લીધેલ નથી!";
+        }
+    }
+
+    function enterSystem(windowMode) {
+        let elem = document.documentElement;
+        if (!windowMode) {
+            if (elem.requestFullscreen) { elem.requestFullscreen(); }
+            else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); } 
+            else if (elem.msRequestFullscreen) { elem.msRequestFullscreen(); } 
+        }
+        document.getElementById('welcomeScreen').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
+        document.body.classList.remove('locked');
+        populateDashMajorHeads(); 
+    }
+
+    document.addEventListener('fullscreenchange', handleEscKey);
+    document.addEventListener('webkitfullscreenchange', handleEscKey);
+    document.addEventListener('mozfullscreenchange', handleEscKey);
+    document.addEventListener('MSFullscreenChange', handleEscKey);
+
+    function handleEscKey() {
+        if (window.innerWidth <= 768) return;
+        if (!isWindowMode && !document.fullscreenElement && !document.webkitIsFullScreen && !document.mozFullScreen && !document.msFullscreenElement) {
+            resetWelcomeScreen();
+        }
+    }
+
+    function resetWelcomeScreen() {
+        updateBackupInfo(); 
+        document.getElementById('welcomeScreen').style.display = 'flex';
+        document.getElementById('mainApp').style.display = 'none';
+        document.body.classList.add('locked');
+        document.getElementById('exitModal').style.display = 'none'; 
+        document.getElementById('customConfirmModal').style.display = 'none';
+        
+        document.getElementById('enterBtn').style.display = 'block';
+        document.getElementById('windowModeBtn').style.display = 'inline-block';
+        document.getElementById('passwordBox').style.display = 'none';
+        document.getElementById('sysPassword').value = '';
+    }
+
+    function openExitModal() {
+        updateBackupInfo(); 
+        if(isDataChanged) {
+            document.getElementById('unsavedWarning').style.display = 'block';
+            document.getElementById('exitConfirmBtn').innerText = "સેવ કરીને બહાર નીકળો (Save & Exit)";
+        } else {
+            document.getElementById('unsavedWarning').style.display = 'none';
+            document.getElementById('exitConfirmBtn').innerText = "બહાર નીકળો (Exit)";
+        }
+        document.getElementById('exitModal').style.display = 'flex';
+    }
+    
+    function closeExitModal() { document.getElementById('exitModal').style.display = 'none'; }
+
+    async function confirmExit() {
+        document.getElementById('exitModal').style.display = 'none';
+        
+        if(isDataChanged) {
+            showToast("ઓટો-બેકઅપ લેવાઈ રહ્યું છે...");
+            await downloadBackup(true); 
+        }
+        
+        if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
+            if (document.exitFullscreen) { document.exitFullscreen(); }
+            else if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); }
+            else if (document.msExitFullscreen) { document.msExitFullscreen(); }
+        }
+        window.close(); 
+        setTimeout(() => { resetWelcomeScreen(); }, 300);
+    }
+
+    function showSection(id) {
+        document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        
+        let tabButtons = document.querySelectorAll('.tab-btn');
+        if(id === 'dashboard') tabButtons[0].classList.add('active');
+        else if(id === 'entry') tabButtons[1].classList.add('active');
+        else if(id === 'reports') tabButtons[2].classList.add('active');
+        else if(id === 'summary') tabButtons[3].classList.add('active');
+        else if(id === 'settings') tabButtons[4].classList.add('active');
+        else if(id === 'password') tabButtons[5].classList.add('active');
+        else if(id === 'backup') tabButtons[6].classList.add('active');
+
+        if(id === 'dashboard') { populateDashMajorHeads(); }
+        if(id === 'reports') { updateFYDropdown(); updateMonthDropdown(); renderTable(); }
+        if(id === 'summary') renderSummary();
+    }
+
+    function editHead(index) {
+        editingHeadIndex = index;
+        oldHeadData = { ...headsList[index] }; 
+        document.getElementById('newHeadName').value = headsList[index].name;
+        document.getElementById('newMajorHead').value = headsList[index].majorHead;
+        document.getElementById('saveHeadBtn').innerHTML = "🔄 હેડ અપડેટ કરો";
+        document.getElementById('saveHeadBtn').style.background = "#f59e0b";
+        document.getElementById('cancelHeadEditBtn').style.display = "inline-block";
+    }
+
+    function cancelHeadEdit() {
+        editingHeadIndex = null; oldHeadData = null;
+        document.getElementById('newHeadName').value = '';
+        document.getElementById('newMajorHead').value = '';
+        document.getElementById('saveHeadBtn').innerHTML = "✔ હેડ સેવ કરો";
+        document.getElementById('saveHeadBtn').style.background = "#10b981";
+        document.getElementById('cancelHeadEditBtn').style.display = "none";
+    }
+
+    function saveHead() {
+        let hName = document.getElementById('newHeadName').value.trim();
+        let mHead = document.getElementById('newMajorHead').value.trim();
+        if(!hName || !mHead) { showToast("બંને વિગતો ભરવી જરૂરી છે.", true); return; }
+        
+        isDataChanged = true; 
+
+        if(editingHeadIndex !== null) {
+            let exists = headsList.some((h, i) => i !== editingHeadIndex && h.name.toLowerCase() === hName.toLowerCase() && h.majorHead.toLowerCase() === mHead.toLowerCase());
+            if(exists) { showToast("આ હેડ અને મેજર હેડની જોડી પહેલેથી જ ઉમેરેલી છે.", true); return; }
+
+            dbData.forEach(row => {
+                if(row.headName === oldHeadData.name && row.majorHead === oldHeadData.majorHead) {
+                    row.headName = hName; row.majorHead = mHead;
+                }
+            });
+            localStorage.setItem('icds_db_data_v2', JSON.stringify(dbData));
+
+            headsList[editingHeadIndex] = { name: hName, majorHead: mHead };
+            showToast("હેડ સફળતાપૂર્વક અપડેટ થઈ ગયો છે!");
+            cancelHeadEdit();
+        } else {
+            if(headsList.some(h => h.name.toLowerCase() === hName.toLowerCase() && h.majorHead.toLowerCase() === mHead.toLowerCase())) {
+                showToast("આ હેડ અને મેજર હેડની જોડી પહેલેથી જ ઉમેરેલી છે.", true); return;
+            }
+            headsList.push({ name: hName, majorHead: mHead });
+            showToast("નવો હેડ સફળતાપૂર્વક ઉમેરાઈ ગયો છે.");
+            document.getElementById('newHeadName').value = ''; document.getElementById('newMajorHead').value = '';
+        }
+        localStorage.setItem('icds_heads_list', JSON.stringify(headsList));
+        updateHeadDropdowns();
+        
+        if (document.getElementById('dashboard').classList.contains('active')) populateDashMajorHeads();
+        if (document.getElementById('reports').classList.contains('active')) renderTable();
+        if (document.getElementById('summary').classList.contains('active')) renderSummary();
+    }
+
+    function deleteHead(index) {
+        showConfirm("શું તમે ખરેખર આ હેડ ડિલીટ કરવા માંગો છો?\n(નોંધ: આનાથી જૂની એન્ટ્રીઓ ડિલીટ નહિ થાય)", function() {
+            headsList.splice(index, 1);
+            localStorage.setItem('icds_heads_list', JSON.stringify(headsList));
+            updateHeadDropdowns();
+            isDataChanged = true;
+            showToast("હેડ સેટિંગ્સમાંથી ડિલીટ થઈ ગયો છે.");
+        });
+    }
+
+    function updateHeadDropdowns() {
+        let hTable = document.getElementById('headsTableBody');
+        hTable.innerHTML = '';
+        headsList.forEach((h, index) => {
+            hTable.innerHTML += `<tr><td>${h.name}</td><td>${h.majorHead}</td>
+                <td style="white-space: nowrap;">
+                    <button class="btn btn-edit btn-small" onclick="editHead(${index})">Edit</button>
+                    <button class="btn btn-danger btn-small" onclick="deleteHead(${index})">Delete</button>
+                </td></tr>`;
+        });
+
+        let uniqueHeads = [...new Set(headsList.map(h => h.name))];
+        let eSelect = document.getElementById('headSelect');
+        eSelect.innerHTML = '<option value="">-- હેડ સિલેક્ટ કરો --</option>';
+        let fSelect = document.getElementById('filterHead');
+        fSelect.innerHTML = '<option value="All">All Heads</option>';
+        let dashSelect = document.getElementById('dashFilterHead');
+        let currentDashSelection = dashSelect.value;
+        dashSelect.innerHTML = '<option value="All">બધા હેડ (All Heads)</option>';
+
+        uniqueHeads.forEach(hName => {
+            eSelect.innerHTML += `<option value="${hName}">${hName}</option>`;
+            fSelect.innerHTML += `<option value="${hName}">${hName}</option>`;
+            dashSelect.innerHTML += `<option value="${hName}">${hName}</option>`;
+        });
+        if(uniqueHeads.includes(currentDashSelection)) { dashSelect.value = currentDashSelection; }
+    }
+
+    function autoFillMajorHead() {
+        let selectedName = document.getElementById('headSelect').value;
+        let mHeadSelect = document.getElementById('majorHead');
+        mHeadSelect.innerHTML = '';
+        if(!selectedName) { mHeadSelect.innerHTML = '<option value="">-- પહેલા હેડ પસંદ કરો --</option>'; return; }
+
+        let availableMHeads = headsList.filter(h => h.name === selectedName).map(h => h.majorHead);
+        if(availableMHeads.length === 1) {
+            mHeadSelect.innerHTML = `<option value="${availableMHeads[0]}" selected>${availableMHeads[0]}</option>`;
+        } else if (availableMHeads.length > 1) {
+            mHeadSelect.innerHTML = '<option value="">-- મેજર હેડ સિલેક્ટ કરો --</option>';
+            availableMHeads.forEach(m => { mHeadSelect.innerHTML += `<option value="${m}">${m}</option>`; });
+        } else {
+            mHeadSelect.innerHTML = '<option value="">-- કોઈ મેજર હેડ નથી --</option>';
+        }
+    }
+
+    function calculateFinancialDetails() {
+        let dateVal = document.getElementById('date').value;
+        if(!dateVal) {
+            document.getElementById('monthStr').value = '';
+            document.getElementById('fyStr').value = '';
+            return;
+        }
+        let d = new Date(dateVal);
+        let year = d.getFullYear();
+        let monthIndex = d.getMonth(); 
+        
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        let shortYear = year.toString().slice(-2);
+        document.getElementById('monthStr').value = `${monthNames[monthIndex]}-${shortYear}`;
+
+        let fy;
+        if (monthIndex < 3) { fy = `${year - 1}-${year}`; } else { fy = `${year}-${year + 1}`; }
+        document.getElementById('fyStr').value = fy;
+    }
+
+    function updateFYDropdown() {
+        let fySet = new Set();
+        dbData.forEach(row => { if(row.fy) fySet.add(row.fy); });
+        let sortedFYs = Array.from(fySet).sort();
+        
+        let selects = ['filterFY', 'dashFilterFY', 'summaryFilterFY'];
+        selects.forEach(id => {
+            let el = document.getElementById(id);
+            if(el) {
+                let currentVal = el.value;
+                el.innerHTML = '<option value="All">બધા વર્ષ (All Years)</option>';
+                sortedFYs.forEach(fy => { el.innerHTML += `<option value="${fy}">${fy}</option>`; });
+                if(fySet.has(currentVal)) el.value = currentVal;
+            }
+        });
+    }
+
+    function updateMonthDropdown() {
+        let monthSet = new Set();
+        dbData.forEach(row => { if(row.monthStr) monthSet.add(row.monthStr); });
+        let monthSelect = document.getElementById('filterMonth');
+        let currentSelection = monthSelect.value;
+        monthSelect.innerHTML = '<option value="All">All Months</option>';
+        Array.from(monthSet).forEach(m => { monthSelect.innerHTML += `<option value="${m}">${m}</option>`; });
+        if(monthSet.has(currentSelection)) monthSelect.value = currentSelection;
+    }
+
+    function editEntry(id) {
+        let entry = dbData.find(row => row.timestamp === id);
+        if(!entry) return;
+        editingId = id; 
+        
+        document.getElementById('date').value = entry.date;
+        document.getElementById('monthStr').value = entry.monthStr;
+        document.getElementById('fyStr').value = entry.fy;
+        document.getElementById('voucher').value = entry.voucher;
+        document.getElementById('headSelect').value = entry.headName;
+        
+        autoFillMajorHead(); 
+        document.getElementById('majorHead').value = entry.majorHead; 
+        document.getElementById('details').value = entry.details;
+        document.getElementById('grant').value = entry.grant || '';
+        document.getElementById('expenditure').value = entry.expenditure || '';
+
+        document.getElementById('formTitle').innerText = "વિગતો સુધારો (Edit Entry)";
+        document.getElementById('saveBtn').innerHTML = "🔄 એન્ટ્રી અપડેટ કરો";
+        document.getElementById('saveBtn').style.background = "#f59e0b";
+        document.getElementById('cancelEditBtn').style.display = "inline-block";
+        showSection('entry');
+    }
+
+    function cancelEdit() {
+        editingId = null;
+        clearForm();
+        document.getElementById('formTitle').innerText = "નવી વિગત ઉમેરો";
+        document.getElementById('saveBtn').innerHTML = "✔ ડેટા સેવ કરો";
+        document.getElementById('saveBtn').style.background = "var(--primary-blue)";
+        document.getElementById('cancelEditBtn').style.display = "none";
+    }
+
+    function deleteEntry(id) {
+        showConfirm("શું તમે ખરેખર આ એન્ટ્રી ડિલીટ કરવા માંગો છો?\nઆ પ્રક્રિયા પાછી નહિ ફરી શકે.", function() {
+            dbData = dbData.filter(row => row.timestamp !== id);
+            localStorage.setItem('icds_db_data_v2', JSON.stringify(dbData));
+            isDataChanged = true;
+            updateFYDropdown();
+            updateMonthDropdown();
+            renderTable();
+            populateDashMajorHeads(); 
+            showToast("એન્ટ્રી સફળતાપૂર્વક ડિલીટ થઈ ગઈ છે.");
+        });
+    }
+
+    function saveEntry() {
+        let entry = {
+            date: document.getElementById('date').value,
+            monthStr: document.getElementById('monthStr').value,
+            fy: document.getElementById('fyStr').value,
+            voucher: document.getElementById('voucher').value,
+            headName: document.getElementById('headSelect').value,
+            majorHead: document.getElementById('majorHead').value,
+            details: document.getElementById('details').value,
+            grant: parseFloat(document.getElementById('grant').value) || 0,
+            expenditure: parseFloat(document.getElementById('expenditure').value) || 0
+        };
+
+        if(!entry.date || !entry.headName || !entry.majorHead) { 
+            showToast("તારીખ, હેડ અને મેજર હેડ પસંદ કરવું જરૂરી છે!", true); return; 
+        }
+
+        isDataChanged = true;
+
+        if(editingId) {
+            let index = dbData.findIndex(row => row.timestamp === editingId);
+            if(index !== -1) { entry.timestamp = editingId; dbData[index] = entry; }
+            showToast("એન્ટ્રી સફળતાપૂર્વક સુધારી (Update) લેવામાં આવી છે.");
+            cancelEdit(); 
+        } else {
+            entry.timestamp = new Date().getTime(); 
+            dbData.push(entry);
+            showToast("ડેટા સફળતાપૂર્વક સેવ થઈ ગયો છે.");
+            clearForm();
+        }
+
+        dbData.sort((a, b) => new Date(a.date) - new Date(b.date));
+        localStorage.setItem('icds_db_data_v2', JSON.stringify(dbData));
+        populateDashMajorHeads(); 
+    }
+
+    function clearForm() {
+        document.getElementById('date').value = '';
+        document.getElementById('monthStr').value = '';
+        document.getElementById('fyStr').value = '';
+        document.getElementById('voucher').value = '';
+        document.getElementById('headSelect').value = '';
+        document.getElementById('majorHead').innerHTML = '<option value="">-- પહેલા હેડ પસંદ કરો --</option>';
+        document.getElementById('details').value = '';
+        document.getElementById('grant').value = '';
+        document.getElementById('expenditure').value = '';
+    }
+
+    function renderTable() {
+        let fHead = document.getElementById('filterHead').value;
+        let fFY = document.getElementById('filterFY').value;
+        let fMonth = document.getElementById('filterMonth').value; 
+        
+        let tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+
+        let runningBalances = {};
+
+        if (fFY !== 'All') {
+            dbData.forEach(row => {
+                if (row.fy < fFY) {
+                    let balKey = row.headName + "_" + row.majorHead;
+                    if(!runningBalances[balKey]) runningBalances[balKey] = 0;
+                    runningBalances[balKey] += (row.grant || 0) - (row.expenditure || 0);
+                }
+            });
+            
+            if (fHead !== 'All') {
+                for(let k in runningBalances) {
+                    if(k.startsWith(fHead + "_") && runningBalances[k] !== 0) {
+                        let mHead = k.split("_")[1];
+                        let tr = document.createElement('tr');
+                        tr.style.backgroundColor = "#ffedd5"; 
+                        tr.innerHTML = `
+                            <td>-</td><td>-</td><td>${fFY}</td><td>-</td>
+                            <td><b>${fHead}</b></td><td><b>${mHead}</b></td><td><b>પ્રારંભિક સિલક (Opening Balance)</b></td>
+                            <td><b>${runningBalances[k] > 0 ? runningBalances[k] : 0}</b></td>
+                            <td><b>${runningBalances[k] < 0 ? Math.abs(runningBalances[k]) : 0}</b></td>
+                            <td style="font-weight:bold; color: ${runningBalances[k] < 0 ? 'red' : 'green'};">${runningBalances[k]}</td>
+                            <td class="action-col">-</td>
+                        `;
+                        tbody.appendChild(tr);
+                    }
+                }
+            }
+        }
+
+        dbData.forEach((row) => {
+            let matchHead = (fHead === 'All' || row.headName === fHead);
+            let matchFY = (fFY === 'All' || row.fy === fFY);
+            let matchMonth = (fMonth === 'All' || row.monthStr === fMonth);
+
+            if (matchHead && matchFY && matchMonth) {
+                let balKey = row.headName + "_" + row.majorHead;
+                if(!runningBalances[balKey]) runningBalances[balKey] = 0;
+                runningBalances[balKey] += (row.grant - row.expenditure);
+
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.date}</td><td>${row.monthStr}</td><td>${row.fy}</td><td>${row.voucher}</td>
+                    <td>${row.headName}</td><td>${row.majorHead}</td><td>${row.details}</td>
+                    <td>${row.grant}</td><td>${row.expenditure}</td>
+                    <td style="font-weight:bold; color: ${runningBalances[balKey] < 0 ? 'red' : 'green'};">${runningBalances[balKey]}</td>
+                    <td class="action-col">
+                        <button class="btn btn-edit btn-small" onclick="editEntry(${row.timestamp})">Edit</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteEntry(${row.timestamp})">Del</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            }
+        });
+    }
+
+    function renderSummary() {
+        let summaryBody = document.getElementById('summaryBody');
+        summaryBody.innerHTML = '';
+        let summaryData = {};
+        let fFY = document.getElementById('summaryFilterFY').value;
+
+        dbData.forEach(row => {
+            let key = row.headName + " | " + row.majorHead;
+            if(!summaryData[key]) {
+                summaryData[key] = { headName: row.headName, majorHead: row.majorHead, openingBal: 0, currentGrant: 0, currentExp: 0 };
+            }
+
+            if (fFY === 'All') {
+                summaryData[key].currentGrant += row.grant || 0;
+                summaryData[key].currentExp += row.expenditure || 0;
+            } else {
+                if (row.fy < fFY) {
+                    summaryData[key].openingBal += (row.grant || 0) - (row.expenditure || 0);
+                } else if (row.fy === fFY) {
+                    summaryData[key].currentGrant += row.grant || 0;
+                    summaryData[key].currentExp += row.expenditure || 0;
+                }
+            }
+        });
+
+        for (const [key, data] of Object.entries(summaryData)) {
+            let totalFund = data.openingBal + data.currentGrant;
+            let balance = totalFund - data.currentExp;
+            let percent = totalFund > 0 ? ((data.currentExp / totalFund) * 100).toFixed(2) : 0;
+            
+            if(fFY !== 'All' && totalFund === 0 && data.currentExp === 0 && balance === 0) continue;
+
+            let tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><b>${data.headName}</b></td>
+                <td>${data.majorHead}</td>
+                <td style="color:#b45309; font-weight:bold;">${data.openingBal}</td>
+                <td style="color:#0284c7; font-weight:bold;">${data.currentGrant}</td>
+                <td style="font-weight:900;">${totalFund}</td>
+                <td style="color:#ef4444; font-weight:bold;">${data.currentExp}</td>
+                <td style="font-weight:bold; font-size:15px; color: ${balance < 0 ? 'red' : 'green'};">${balance}</td>
+                <td>${percent}%</td>
+            `;
+            summaryBody.appendChild(tr);
+        }
+    }
+
+    async function downloadBackup(isAuto = false) {
+        let exportData = { heads: headsList, entries: dbData };
+        let dataStr = JSON.stringify(exportData);
+        
+        let d = new Date();
+        let day = String(d.getDate()).padStart(2, '0');
+        let month = String(d.getMonth() + 1).padStart(2, '0');
+        let year = String(d.getFullYear()).slice(-2);
+        
+        let dateString = `${day}_${month}_${year}`;
+        let backupFileName = `ICDS_Fund_Database_Backup_${dateString}.json`;
+        let finalSavedName = backupFileName;
+
+        // Android App (Capacitor) - Filesystem + Share વાપરો
+        if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+            try {
+                const { Filesystem, Share } = window.Capacitor.Plugins;
+                // base64 encode
+                const b64 = btoa(unescape(encodeURIComponent(dataStr)));
+                const result = await Filesystem.writeFile({
+                    path: backupFileName,
+                    data: b64,
+                    directory: 'DOCUMENTS',
+                    recursive: true
+                });
+                await Share.share({
+                    title: 'ICDS Backup',
+                    text: backupFileName,
+                    url: result.uri,
+                    dialogTitle: 'Backup ફાઇલ Save/Share કરો'
+                });
+                isDataChanged = false;
+                finalSavedName = backupFileName;
+                if (!isAuto) showToast("બેકઅપ ફાઈલ Ready! Save/Share કરો.");
+            } catch (err) {
+                if (String(err).includes('cancel') || String(err).includes('Cancel')) return;
+                showToast("Backup Error: " + err.message, true);
+                return;
+            }
+        } else if (window.showSaveFilePicker) {
+            // Desktop browser - File System Access API
+            try {
+                if (!currentFileHandle || currentBackupDate !== dateString) {
+                    currentFileHandle = await window.showSaveFilePicker({
+                        suggestedName: backupFileName,
+                        types: [{ description: 'JSON Backup File', accept: {'application/json': ['.json']} }],
+                    });
+                    currentBackupDate = dateString;
+                }
+                const writable = await currentFileHandle.createWritable();
+                await writable.write(dataStr);
+                await writable.close();
+                isDataChanged = false;
+                finalSavedName = currentFileHandle.name;
+                if (!isAuto) showToast("બેકઅપ ફાઈલ ઓટો-અપડેટ (ઓવરરાઈટ) થઈ ગઈ છે!");
+            } catch (err) { return; }
+        } else {
+            // Fallback browser download
+            let dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+            let linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', backupFileName);
+            linkElement.click();
+            isDataChanged = false;
+            if (!isAuto) showToast("બેકઅપ ફાઈલ ડાઉનલોડ થઈ ગઈ છે.");
+        }
+        
+        localStorage.setItem('icds_last_backup_name', finalSavedName);
+        updateBackupInfo();
+    }
+
+    function uploadBackup() {
+        let file = document.getElementById('uploadFile').files[0];
+        if(!file) { showToast("કૃપા કરીને પહેલા ફાઈલ સિલેક્ટ કરો.", true); return; }
+        
+        let reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                let importedData = JSON.parse(e.target.result);
+                if(importedData.entries && importedData.heads) {
+                    dbData = importedData.entries;
+                    headsList = importedData.heads;
+                    localStorage.setItem('icds_db_data_v2', JSON.stringify(dbData));
+                    localStorage.setItem('icds_heads_list', JSON.stringify(headsList));
+                    
+                    localStorage.setItem('icds_last_backup_name', file.name);
+                    currentFileHandle = null; // જૂનું હેન્ડલ રીસેટ 
+
+                    updateHeadDropdowns();
+                    updateFYDropdown();
+                    updateMonthDropdown();
+                    populateDashMajorHeads(); 
+                    showSection('dashboard'); 
+                    showToast("ડેટા સફળતાપૂર્વક અપલોડ થઈ ગયો છે!");
+                } else {
+                    showToast("ફાઈલનું ફોર્મેટ સાચું નથી.", true);
+                }
+            } catch (err) { showToast("ફાઈલ રીડ કરવામાં ભૂલ આવી છે.", true); }
+        };
+        reader.readAsText(file);
+    }
+
+    function exportPDF(elementId, baseFileName) {
+        let titleId = elementId === 'reportPrintArea' ? 'pdfTitleReport' : 'pdfTitleSummary';
+        let titleElement = document.getElementById(titleId);
+        let finalFileName = baseFileName;
+
+        if (elementId === 'reportPrintArea') {
+            let fHead = document.getElementById('filterHead').value;
+            let fMonth = document.getElementById('filterMonth').value; 
+            let fFY = document.getElementById('filterFY').value; 
+            
+            let dynamicTitle = "ICDS - ";
+            let fileSuffix = "";
+
+            if (fHead !== "All") { dynamicTitle += fHead + " Details "; fileSuffix += "_" + fHead; }
+            else { dynamicTitle += "All Details "; }
+            
+            if (fMonth !== "All" && fFY !== "All") { dynamicTitle += `(${fMonth}, FY: ${fFY})`; fileSuffix += `_${fMonth}_${fFY}`; }
+            else if (fMonth !== "All") { dynamicTitle += `(${fMonth})`; fileSuffix += "_" + fMonth; }
+            else if (fFY !== "All") { dynamicTitle += `(FY: ${fFY})`; fileSuffix += "_" + fFY; }
+            
+            titleElement.innerText = dynamicTitle;
+            finalFileName = "ICDS_Report" + fileSuffix;
+        } else {
+            let fFY = document.getElementById('summaryFilterFY').value;
+            if (fFY !== 'All') {
+                titleElement.innerText = `ICDS - હેડ મુજબ સમરી (FY: ${fFY})`;
+                finalFileName += "_" + fFY;
+            } else {
+                titleElement.innerText = `ICDS - હેડ મુજબ સમરી રિપોર્ટ`;
+            }
+        }
+
+        let actionCols = document.querySelectorAll('.action-col');
+        actionCols.forEach(col => col.style.display = 'none');
+        titleElement.style.display = 'block';
+
+        showToast("PDF તૈયાર થઈ રહી છે, કૃપા કરીને રાહ જુઓ...");
+
+        var element = document.getElementById(elementId);
+        var opt = {
+            margin:       0.5,
+            filename:     finalFileName + '.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2 },
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+        };
+
+        // Android App (Capacitor) - Filesystem + Share વાપરો
+        if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+            html2pdf().set(opt).from(element).outputPdf('blob').then(async function(blob) {
+                const reader = new FileReader();
+                reader.onloadend = async function() {
+                    try {
+                        const base64 = reader.result.split(',')[1];
+                        const { Filesystem, Share } = window.Capacitor.Plugins;
+                        const pdfName = finalFileName + '.pdf';
+                        const result = await Filesystem.writeFile({
+                            path: pdfName,
+                            data: base64,
+                            directory: 'DOCUMENTS',
+                            recursive: true
+                        });
+                        titleElement.style.display = 'none';
+                        actionCols.forEach(col => col.style.display = '');
+                        await Share.share({
+                            title: 'ICDS Report',
+                            text: pdfName,
+                            url: result.uri,
+                            dialogTitle: 'PDF Save/Share કરો'
+                        });
+                    } catch(err) {
+                        titleElement.style.display = 'none';
+                        actionCols.forEach(col => col.style.display = '');
+                        if (!String(err).toLowerCase().includes('cancel')) {
+                            showToast("PDF Error: " + err.message, true);
+                        }
+                    }
+                };
+                reader.readAsDataURL(blob);
+            });
+        } else {
+            // Browser - normal download
+            html2pdf().set(opt).from(element).save().then(() => {
+                titleElement.style.display = 'none';
+                actionCols.forEach(col => col.style.display = '');
+            });
+        }
+    }
+</script>
+
+</body>
+</html>
