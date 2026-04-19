@@ -1,0 +1,13 @@
+{
+  "appId": "com.icds.financemanagement",
+  "appName": "ICDS Finance",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  }
+}
